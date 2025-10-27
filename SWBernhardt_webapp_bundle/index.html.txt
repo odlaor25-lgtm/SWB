@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SW.Bernhardt Data Intake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <main class="max-w-3xl mx-auto p-6">
+    <h1 class="text-2xl font-semibold mb-1">บันทึกข้อมูลเข้าชีต</h1>
+    <p class="text-gray-600 mb-6">โครงสร้างจริง / ข้อมูลทดสอบ — ตรวจสอบ schema ทั้งฝั่งหน้าเว็บและฝั่ง Apps Script</p>
+
+    <div id="alert" class="hidden rounded-md p-3 mb-4"></div>
+
+    <form id="smartForm" class="space-y-5">
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium">เลือกชีต (Tab)</label>
+          <select id="sheet" class="mt-1 w-full rounded-md border px-3 py-2">
+            <option value="MillBills">MillBills</option><option value="Customers">Customers</option><option value="Products">Products</option><option value="Loads">Loads</option><option value="Labor">Labor</option><option value="Bills">Bills</option><option value="Office">Office</option><option value="Employees">Employees</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">โหมดฟิลด์</label>
+          <select id="fieldMode" class="mt-1 w-full rounded-md border px-3 py-2">
+            <option value="required">Required</option>
+            <option value="optional">Optional</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3 p-3 bg-yellow-50 rounded-md text-sm text-yellow-900">
+        <div class="font-semibold">สำคัญ:</div>
+        <div>ตั้งค่า <code>ENDPOINT</code> ให้เป็น Web App URL (ลงท้าย <code>/exec</code>) หลังจาก Deploy Apps Script</div>
+      </div>
+
+      <div id="fields" class="grid sm:grid-cols-2 gap-4"></div>
+
+      <button id="submitBtn" type="submit"
+              class="w-full rounded-md bg-black text-white py-2 disabled:opacity-50">
+        ส่งข้อมูล
+      </button>
+      <p class="text-xs text-gray-500">ไม่มีหน้า confirm และบันทึกลงชีตโดยตรง</p>
+    </form>
+  </main>
+
+<script>
+  const ENDPOINT = 'PASTE_YOUR_WEB_APP_URL_HERE';
+  const SECRET = '';
+  const CLIENT_SCHEMA_HASH = '875c62445908b4830afc1a0911c78b58749840b4af2bf8718ceb26a19edbf975';
+
+  const SCHEMA = {"MillBills": ["bill_no", "date", "customer_no", "customer_name", "mill_name", "net_tons", "mill_price_per_ton", "harvest_rate_per_ton", "transport_rate_per_ton", "mill_amount", "service_amount", "customer_net_amount", "status", "paid_date", "pay_ref", "note"], "Customers": ["customer_no", "name", "phone", "address", "created_at"], "Products": ["sku", "name", "category", "price", "unit", "stock", "created_at"], "Loads": ["id", "date", "customer_no", "customer_name", "truck_id", "weight_ton", "slip_no", "field", "note"], "Labor": ["id", "date", "customer_no", "employee_name", "type", "amount", "note"], "Bills": ["bill_no", "date", "customer_no", "customer_name", "total_amount", "status", "load_ids", "labor_ids", "price_at_creation"], "Settings": ["key", "value", "updated_at"], "Office": ["CreatedAt", "Key", "Value", "Note"], "Employees": ["EmployeeID", "Name", "Role", "Phone", "Email", "CreatedAt"]};
+  const ALLOWED = ["MillBills", "Customers", "Products", "Loads", "Labor", "Bills", "Office", "Employees"];
+
+  const sheetSel = document.getElementById('sheet');
+  const fieldsWrap = document.getElementById('fields');
+  const form = document.getElementById('smartForm');
+  const alertBox = document.getElementById('alert');
+  const submitBtn = document.getElementById('submitBtn');
+  const fieldModeSel = document.getElementById('fieldMode');
+
+  function showAlert(kind, msg) {
+    alertBox.className = `rounded-md p-3 mb-4 ${kind === 'ok' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`;
+    alertBox.textContent = msg;
+    alertBox.classList.remove('hidden');
+  }
+
+  function sanitizeId(name) {
+    return name.replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  function headersFor(sheet) {
+    return (SCHEMA[sheet] || []).filter(h => h && h !== 'Timestamp');
+  }
+
+  function renderFields(sheet) {
+    fieldsWrap.innerHTML = '';
+    headersFor(sheet).forEach(h => {
+      const id = sanitizeId(h);
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <label for="${id}" class="block text-sm font-medium">${h}</label>
+        <input id="${id}" name="${h}" class="mt-1 w-full rounded-md border px-3 py-2"
+               placeholder="${h}" ${fieldModeSel.value === 'required' ? 'required' : ''} />
+      `;
+      fieldsWrap.appendChild(div);
+    });
+  }
+
+  function validateAgainstSchema(sheet, fields) {
+    if (!ALLOWED.includes(sheet)) {
+      return 'Sheet ไม่อยู่ในรายการอนุญาต';
+    }
+    const allowedCols = new Set(headersFor(sheet));
+    const keys = Object.keys(fields);
+    const unknown = keys.filter(k => !allowedCols.has(k));
+    if (unknown.length) return 'พบคอลัมน์ที่ไม่รู้จัก: ' + unknown.join(', ');
+    const hasValue = keys.some(k => String(fields[k]).trim().length > 0);
+    if (!hasValue) return 'กรุณากรอกอย่างน้อย 1 ช่อง';
+    return null;
+  }
+
+  sheetSel.addEventListener('change', () => renderFields(sheetSel.value));
+  fieldModeSel.addEventListener('change', () => renderFields(sheetSel.value));
+  renderFields(sheetSel.value);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    alertBox.classList.add('hidden');
+    submitBtn.disabled = true;
+
+    const sheet = sheetSel.value;
+    const fields = {};
+    fieldsWrap.querySelectorAll('input, textarea, select').forEach(el => {
+      fields[el.name] = el.value;
+    });
+
+    const err = validateAgainstSchema(sheet, fields);
+    if (err) {
+      showAlert('err', err);
+      submitBtn.disabled = false;
+      return;
+    }
+
+    const payload = { sheet, fields, schemaHash: CLIENT_SCHEMA_HASH, ...(SECRET ? {SECRET} : {}) };
+
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const text = await res.text().catch(()=>''); 
+      let data = null;
+      try { data = JSON.parse(text); } catch (_) {}
+      if (data && data.ok) {
+        showAlert('ok', 'บันทึกสำเร็จ: ' + data.sheet + ' แถว #' + data.row);
+        form.reset();
+        renderFields(sheet);
+      } else if (res.ok) {
+        showAlert('ok', 'บันทึกสำเร็จ');
+        form.reset();
+        renderFields(sheet);
+      } else {
+        showAlert('err', data && data.error ? data.error : 'ส่งไม่สำเร็จ');
+      }
+    } catch (err) {
+      showAlert('err', 'เครือข่ายผิดพลาด: ' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

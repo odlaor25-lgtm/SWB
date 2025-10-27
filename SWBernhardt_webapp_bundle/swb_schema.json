@@ -1,0 +1,86 @@
+{
+  "MillBills": [
+    "bill_no",
+    "date",
+    "customer_no",
+    "customer_name",
+    "mill_name",
+    "net_tons",
+    "mill_price_per_ton",
+    "harvest_rate_per_ton",
+    "transport_rate_per_ton",
+    "mill_amount",
+    "service_amount",
+    "customer_net_amount",
+    "status",
+    "paid_date",
+    "pay_ref",
+    "note"
+  ],
+  "Customers": [
+    "customer_no",
+    "name",
+    "phone",
+    "address",
+    "created_at"
+  ],
+  "Products": [
+    "sku",
+    "name",
+    "category",
+    "price",
+    "unit",
+    "stock",
+    "created_at"
+  ],
+  "Loads": [
+    "id",
+    "date",
+    "customer_no",
+    "customer_name",
+    "truck_id",
+    "weight_ton",
+    "slip_no",
+    "field",
+    "note"
+  ],
+  "Labor": [
+    "id",
+    "date",
+    "customer_no",
+    "employee_name",
+    "type",
+    "amount",
+    "note"
+  ],
+  "Bills": [
+    "bill_no",
+    "date",
+    "customer_no",
+    "customer_name",
+    "total_amount",
+    "status",
+    "load_ids",
+    "labor_ids",
+    "price_at_creation"
+  ],
+  "Settings": [
+    "key",
+    "value",
+    "updated_at"
+  ],
+  "Office": [
+    "CreatedAt",
+    "Key",
+    "Value",
+    "Note"
+  ],
+  "Employees": [
+    "EmployeeID",
+    "Name",
+    "Role",
+    "Phone",
+    "Email",
+    "CreatedAt"
+  ]
+}
