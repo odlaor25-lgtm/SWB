@@ -2,298 +2,64 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SW.BERNHARDT — Cane & Labor</title>
+  <title>SWB Rent Bill</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body{font-family:Inter,ui-sans-serif,system-ui; background:linear-gradient(135deg,#f8fbff 0,#eef7ff 100%); min-height:100vh}
-    .card{background:#ffffffaa;backdrop-filter:blur(6px);border-radius:12px;padding:18px;border:1px solid rgba(2,6,23,0.06)}
-    .login-input{padding:.55rem .7rem;border-radius:10px;border:1px solid rgba(15,23,42,.06)}
-    .login-btn{background:linear-gradient(90deg,#0ea5e9,#0284c7);color:#fff;padding:.6rem .9rem;border-radius:10px;font-weight:600}
-    pre{white-space:pre-wrap;word-break:break-word}
-  </style>
+
+  <!-- PDF / Image -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
 </head>
-<body>
-  <main class="max-w-4xl mx-auto p-6">
-    <!-- LOGIN -->
-    <section id="loginScreen" class="card max-w-md mx-auto">
-      <div class="text-center mb-4">
-        <h1 class="text-2xl font-bold">SW.BERNHARDT</h1>
-        <div class="text-sm text-gray-600">Cane & Labor Management</div>
-      </div>
-      <form id="loginForm" class="space-y-3">
-        <div>
-          <label class="text-sm block mb-1">รหัสลูกค้า / Username</label>
-          <input id="username" class="login-input w-full" placeholder="รหัสลูกค้าหรือ ADMIN" />
-        </div>
-        <div>
-          <label class="text-sm block mb-1">รหัสผ่าน / Password</label>
-          <input id="password" type="password" class="login-input w-full" placeholder="รหัสผ่าน" />
-        </div>
-        <button type="submit" class="login-btn w-full">เข้าสู่ระบบ</button>
-      </form>
-      <div class="text-xs text-gray-500 mt-3">
-        <div>ADMIN / 0000 สำหรับทดสอบ</div>
-      </div>
-    </section>
 
-    <!-- CUSTOMER PORTAL -->
-    <section id="customerPortal" class="hidden mt-6">
-      <div class="card">
-        <div class="flex justify-between items-center mb-3">
-          <div>
-            <h2 id="customerName" class="text-lg font-semibold">Customer</h2>
-            <div id="customerSub" class="text-sm text-gray-600">รหัส: -</div>
-          </div>
-          <div><button onclick="doLogout()" class="px-3 py-2 rounded bg-gray-100">ออก</button></div>
-        </div>
+<body class="bg-gray-100 p-4">
+<div class="max-w-4xl mx-auto bg-white p-6 shadow" id="bill">
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div class="p-3 border rounded">
-            <h4 class="font-medium">ราคาอ้อย</h4>
-            <div id="currentPrice" class="text-2xl font-bold mt-2">-</div>
-            <div id="priceUpdated" class="text-xs text-gray-500">-</div>
-          </div>
+  <h1 class="text-2xl font-bold text-center">
+    บิลค่าเช่าห้อง / Rent Bill
+  </h1>
 
-          <div class="md:col-span-2 p-3 border rounded">
-            <h4 class="font-medium">บิลของฉัน</h4>
-            <div id="billsList" class="mt-2 text-sm text-gray-700">กำลังโหลด...</div>
-          </div>
-        </div>
-      </div>
-    </section>
+  <div class="grid grid-cols-2 gap-4 mt-4">
+    <input id="room" placeholder="ห้อง / Room" class="border p-2">
+    <input id="period" placeholder="เดือน / Month" class="border p-2">
+  </div>
 
-    <!-- ADMIN DASHBOARD -->
-    <section id="adminDashboard" class="hidden mt-6 card">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-lg font-semibold">Admin Dashboard</h2>
-        <div><button onclick="doLogout()" class="px-3 py-2 rounded bg-gray-100">ออก</button></div>
-      </div>
+  <table class="w-full mt-6 border text-sm">
+    <thead class="bg-gray-200">
+      <tr>
+        <th>รายการ</th>
+        <th>ก่อน</th>
+        <th>หลัง</th>
+        <th>หน่วย</th>
+        <th>ราคา</th>
+        <th>รวม</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="items"></tbody>
+  </table>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div class="p-3 border rounded">
-          <div class="text-sm text-gray-600">Total Loads</div>
-          <div id="totalLoads" class="text-2xl font-bold">0</div>
-        </div>
-        <div class="p-3 border rounded">
-          <div class="text-sm text-gray-600">Total Bills</div>
-          <div id="totalBills" class="text-2xl font-bold">0</div>
-        </div>
-        <div class="p-3 border rounded">
-          <div class="text-sm text-gray-600">Customers</div>
-          <div id="totalCustomers" class="text-2xl font-bold">0</div>
-        </div>
-      </div>
+  <button onclick="addRow()" class="mt-3 text-blue-600">
+    + เพิ่มรายการ / Add Item
+  </button>
 
-      <div class="mt-4">
-        <h4 class="font-medium">Recent Activities</h4>
-        <pre id="recentActivities" class="text-sm text-gray-700">-</pre>
-      </div>
-    </section>
+  <div class="text-right text-xl font-bold mt-6">
+    รวมทั้งหมด / Total: <span id="total">0</span> บาท
+  </div>
 
-    <!-- COST CALCULATOR -->
-    <section id="costCalc" class="card mt-6">
-      <h3 class="text-lg font-semibold mb-2">Cost Calculator — เก็บเกี่ยวอ้อย (บาท/ตัน)</h3>
+  <div class="flex gap-3 mt-6">
+    <button onclick="printBill()" class="bg-gray-700 text-white px-4 py-2">พิมพ์</button>
+    <button onclick="downloadPDF()" class="bg-blue-600 text-white px-4 py-2">PDF</button>
+    <button onclick="downloadJPG()" class="bg-green-600 text-white px-4 py-2">JPG</button>
+  </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <label class="text-xs">W_h<input id="W_h" class="login-input mt-1 w-full" value="50"></label>
-        <label class="text-xs">M_h2<input id="M_h2" class="login-input mt-1 w-full" value="1200"></label>
-        <label class="text-xs">M_h3<input id="M_h3" class="login-input mt-1 w-full" value="800"></label>
-        <label class="text-xs">P_f<input id="P_f" class="login-input mt-1 w-full" value="32"></label>
+</div>
 
-        <label class="text-xs">T_ph2<input id="T_ph2" class="login-input mt-1 w-full" value="10"></label>
-        <label class="text-xs">F_2<input id="F_2" class="login-input mt-1 w-full" value="12"></label>
-        <label class="text-xs">F_3<input id="F_3" class="login-input mt-1 w-full" value="6"></label>
-        <label class="text-xs">T_load<input id="T_load" class="login-input mt-1 w-full" value="20"></label>
-
-        <label class="text-xs">H_trip<input id="H_trip" class="login-input mt-1 w-full" value="0.8"></label>
-        <label class="text-xs">H_drive<input id="H_drive" class="login-input mt-1 w-full" value="1.5"></label>
-        <label class="text-xs">F_trip<input id="F_trip" class="login-input mt-1 w-full" value="18"></label>
-        <label class="text-xs">D_trip<input id="D_trip" class="login-input mt-1 w-full" value="300"></label>
-
-        <label class="text-xs">% เครื่องตัดใบเข้าได้<input id="use_leaf_pct" class="login-input mt-1 w-full" value="50"></label>
-        <label class="text-xs">รวมตัน<input id="total_tons" class="login-input mt-1 w-full" value="20"></label>
-        <label class="text-xs">ชื่อชุดคำนวณ<input id="sc_name" class="login-input mt-1 w-full" value="ทดสอบ"></label>
-      </div>
-
-      <div class="flex gap-2 mt-3">
-        <button id="btnCalc" class="login-btn">คำนวณ</button>
-        <button id="btnSave" class="login-btn" style="background:linear-gradient(90deg,#34d399,#10b981)">บันทึกลง Sheets</button>
-      </div>
-
-      <pre id="calcResult" class="mt-3 text-sm bg-white p-3 rounded text-slate-800">ผลลัพธ์จะมาแสดงที่นี่</pre>
-    </section>
-  </main>
-
-  <div id="notification" class="hidden fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded"></div>
-
+<script src="app.js"></script>
 <script>
-/* =========== CONFIG =========== */
-const API_BASE = 'https://script.google.com/macros/s/AKfycbwE2Bxc1niQ6oWNKd6tyZkHdVbhrdYqdL6EFRYzwJIHtRSljb61pe41LJeWa_Qdts2S/exec';
-const SHEET_ID = '1CJgNoP-9hsdXFjnHSsuIQZz3dFo6a341ylRTkvgAOcs';
-
-/* ========== Notification ========== */
-function showNotification(msg, type='info', t=3500){
-  const el=document.getElementById('notification');
-  el.textContent=msg;
-  el.classList.remove('hidden');
-  el.style.background=(type==='error')?'#b91c1c':'#0b1320';
-  setTimeout(()=>el.classList.add('hidden'),t);
-}
-
-/* ================================ API ================================ */
-async function apiGet(params={}){
-  const qs=new URLSearchParams(params).toString();
-  try{
-    const r=await fetch(API_BASE+'?'+qs);
-    return await r.json();
-  }catch(e){return{success:false,error:e.message}}
-}
-async function apiPost(body={}){
-  try{
-    const r=await fetch(API_BASE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    return await r.json();
-  }catch(e){return{success:false,error:e.message}}
-}
-
-/* =============================== LOGIN =============================== */
-document.getElementById('loginForm').addEventListener('submit',async(ev)=>{
-  ev.preventDefault();
-  const u=document.getElementById('username').value.trim();
-  const p=document.getElementById('password').value.trim();
-
-  const res=await apiGet({action:'login',username:u,password:p,sheetId:SHEET_ID});
-  if(!res.success){showNotification(res.message,'error');return;}
-
-  localStorage.setItem('swb_token',res.token);
-
-  window.__swb={token:res.token,role:res.role,profile:res.profile};
-
-  if(res.role==='ADMIN'){showAdminDashboard();loadAdminData();}
-  else{showCustomerPortal(res.profile);loadCustomerData();}
-});
-
-function doLogout(){
-  localStorage.removeItem('swb_token');
-  location.reload();
-}
-
-/* =========================== UI switching ============================ */
-function showCustomerPortal(profile){
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('adminDashboard').classList.add('hidden');
-  document.getElementById('customerPortal').classList.remove('hidden');
-
-  document.getElementById('customerName').textContent = profile.name || profile.customer_no;
-  document.getElementById('customerSub').textContent = "รหัส: " + profile.customer_no;
-}
-
-function showAdminDashboard(){
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('customerPortlet').classList?.add('hidden');
-  document.getElementById('adminDashboard').classList.remove('hidden');
-}
-
-/* ====================== Load customer data ========================= */
-async function loadCustomerData(){
-  const c = window.__swb.profile.customer_no;
-  const bills = await apiGet({action:'getBills',customer_no:c,sheetId:SHEET_ID});
-  renderBills(bills.bills||[]);
-
-  const p = await apiGet({action:'getPrice',sheetId:SHEET_ID});
-  if(p.success){
-    document.getElementById('currentPrice').textContent = p.price.price_per_ton + ' ฿/ตัน';
-    document.getElementById('priceUpdated').textContent = 'อัปเดต ' + new Date(p.price.updated_at).toLocaleString();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
   }
-}
-
-function renderBills(bills){
-  const c=document.getElementById('billsList');
-  c.innerHTML='';
-  if(bills.length===0){c.textContent='ไม่มีบิล';return;}
-
-  bills.forEach(b=>{
-    const el=document.createElement('div');
-    el.className='p-2 border rounded mb-2';
-    el.innerHTML=`
-      <div class="flex justify-between">
-        <div>
-          <div class="font-semibold">${b.bill_no}</div>
-          <div class="text-xs text-gray-600">${b.date}</div>
-        </div>
-        <div class="text-right">
-          <div class="font-bold">฿${b.total_amount}</div>
-          <div class="text-xs">${b.status}</div>
-        </div>
-      </div>
-    `;
-    c.appendChild(el);
-  });
-}
-
-/* ====================== Admin Summary ============================== */
-async function loadAdminData(){
-  const token = localStorage.getItem('swb_token');
-  const res = await apiGet({action:'adminSummary',token,sheetId:SHEET_ID});
-
-  document.getElementById('totalLoads').textContent = res.summary.totalLoads;
-  document.getElementById('totalBills').textContent = res.summary.totalBills;
-  document.getElementById('totalCustomers').textContent = res.summary.totalCustomers;
-
-  document.getElementById('recentActivities').textContent = res.recent.join("\n");
-}
-
-/* ===================== Cost Calculator ============================ */
-function getInputs(){
-  return {
-    scenario_name: document.getElementById('sc_name').value,
-    total_tons: Number(document.getElementById('total_tons').value),
-    W_h:Number(W_h.value), M_h2:Number(M_h2.value),
-    M_h3:Number(M_h3.value), P_f:Number(P_f.value),
-    T_ph2:Number(T_ph2.value), F_2:Number(F_2.value),
-    F_3:Number(F_3.value), T_load:Number(T_load.value),
-    H_trip:Number(H_trip.value), H_drive:Number(H_drive.value),
-    F_trip:Number(F_trip.value), D_trip:Number(D_trip.value),
-    use_leaf_machine_pct:Number(use_leaf_pct.value)
-  };
-}
-
-async function runCalc(){
-  const input=getInputs();
-  const qs=new URLSearchParams({action:'calc',input:JSON.stringify(input)});
-  const r=await fetch(API_BASE+'?'+qs);
-  return r.json();
-}
-
-document.getElementById('btnCalc').addEventListener('click',async()=>{
-  const r=await runCalc();
-  calcResult.textContent=JSON.stringify(r,null,2);
-});
-
-document.getElementById('btnSave').addEventListener('click',async()=>{
-  const input=getInputs();
-  const qs=new URLSearchParams({action:'saveCost',input:JSON.stringify(input)});
-  const r=await fetch(API_BASE+'?'+qs);
-  const j=await r.json();
-
-  if(j.success){alert("บันทึกแล้ว"); calcResult.textContent=JSON.stringify(j.calc,null,2);}
-  else alert("ไม่สำเร็จ: "+JSON.stringify(j));
-});
-
-/* ================ Auto-login ===================== */
-(async function init(){
-  const tk=localStorage.getItem('swb_token');
-  if(!tk) return;
-
-  const me = await apiGet({action:'whoami',token:tk,sheetId:SHEET_ID});
-  if(!me.success){localStorage.removeItem('swb_token');return;}
-
-  window.__swb = me;
-
-  if(me.role==='ADMIN'){showAdminDashboard();loadAdminData();}
-  else{showCustomerPortal(me.profile);loadCustomerData();}
-})();
 </script>
 </body>
 </html>
-HTML
