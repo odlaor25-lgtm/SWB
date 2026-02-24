@@ -1,65 +1,256 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8" />
-  <title>SWB Rent Bill</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="manifest" href="manifest.json">
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+    <title>SW.BERNHARDT HOUSE | Rental OS</title>
+    <style>
+        :root {
+            --mx-bg: #000;
+            --mx-green: #00ff41;
+            --mx-green-2: #00d4ff;
+            --glass: rgba(255, 255, 255, .06);
+            --line: rgba(255, 255, 255, .14);
+            --mx-danger: #ff3131;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--mx-bg);
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Animation Utility */
+        .animate-in {
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-  <!-- PDF / Image -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+        /* Layout & Components */
+        .main-nav {
+            position: fixed;
+            inset: 0 auto auto 0;
+            height: 64px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 0 16px;
+            background: rgba(0, 0, 0, .9);
+            border-bottom: 2px solid rgba(0, 255, 65, .2);
+            backdrop-filter: blur(12px);
+            z-index: 50;
+            transition: border-color 0.3s;
+        }
+        .logo {
+            font-weight: 900;
+            letter-spacing: .5px;
+            background: linear-gradient(45deg, var(--mx-green), var(--mx-green-2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.1rem;
+            white-space: nowrap;
+        }
+        .nav-menu { 
+            display: flex; 
+            gap: 6px; 
+            flex: 1; 
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-right: 10px;
+        }
+        .nav-menu::-webkit-scrollbar { display: none; }
+
+        .nav-item {
+            padding: 8px 14px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+            color: rgba(255,255,255,0.7);
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255, 255, 255, .05);
+            border-color: rgba(255, 255, 255, .1);
+            color: #fff;
+        }
+        .nav-item.active {
+            border-color: var(--mx-green-2);
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .user-info { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+        .user-avatar {
+            height: 32px;
+            width: 32px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            color: #000;
+            font-weight: 900;
+            font-size: 0.8rem;
+            transition: background 0.3s;
+        }
+        
+        .content {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px 80px;
+            width: 100%;
+        }
+
+        /* Scanner */
+        .scanner {
+            position: fixed;
+            left: -100px;
+            top: 0;
+            width: 100px;
+            height: 100vh;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, .1) 50%, transparent);
+            animation: scan 8s linear infinite;
+            z-index: 1;
+            pointer-events: none;
+        }
+        @keyframes scan { 0% { left: -100px } 100% { left: 100vw } }
+
+        /* Shared Styles */
+        .form-container, .table-container, .dashboard-card {
+            background: rgba(10, 10, 10, 0.7);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+        .card-title { color: var(--mx-green); font-weight: 800; margin-bottom: 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; }
+        .card-value { font-size: 1.8rem; font-weight: 900; color: #fff; }
+        
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: rgba(255, 255, 255, .03);
+            color: #fff;
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+        input:focus { outline: none; border-color: var(--mx-green-2); }
+        
+        .btn {
+            background: #fff;
+            border: none;
+            color: #000;
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: 0.2s;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,255,255,0.2); }
+        .btn-secondary { background: transparent; border: 1px solid var(--line); color: #fff; }
+
+        .table-container { overflow-x: auto; border: 1px solid var(--line); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 18px; text-align: left; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+        th { color: rgba(255,255,255,0.4); text-transform: uppercase; font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; }
+        
+        .status-badge { 
+            padding: 4px 10px; 
+            border-radius: 4px; 
+            font-size: .65rem; 
+            font-weight: 900; 
+        }
+        .status-active { background: var(--mx-green); color: #000; }
+        .status-overdue { background: var(--mx-danger); color: #fff; }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .modal-container {
+            background: #000;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .close-modal {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: transparent; color: #fff; border: none; font-size: 1.5rem; cursor: pointer;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--line);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        .controls { position: fixed; right: 20px; bottom: 20px; z-index: 60; }
+
+        /* Print Specifics */
+        @media print {
+            .no-print, .main-nav, .controls, .scanner, canvas { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .modal-overlay { position: relative; background: white; padding: 0; }
+            .modal-container { border: none; box-shadow: none; color: black !important; max-width: 100%; width: 100%; }
+            .modal-container label, .modal-container h1, .modal-container p { color: black !important; }
+            .document-header { border-bottom: 2px solid black !important; }
+            .modal-container b { color: black !important; font-weight: bold; }
+        }
+
+        @media(max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .content { padding-top: 80px; }
+            .nav-item { padding: 8px 10px; font-size: 0.75rem; }
+        }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://esm.sh/react@^19.2.4/",
+        "react": "https://esm.sh/react@^19.2.4",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+        "@google/genai": "https://esm.sh/@google/genai@^1.40.0"
+      }
+    }
+    </script>
+<link rel="stylesheet" href="/index.css">
 </head>
-
-<body class="bg-gray-100 p-4">
-<div class="max-w-4xl mx-auto bg-white p-6 shadow" id="bill">
-
-  <h1 class="text-2xl font-bold text-center">
-    บิลค่าเช่าห้อง / Rent Bill
-  </h1>
-
-  <div class="grid grid-cols-2 gap-4 mt-4">
-    <input id="room" placeholder="ห้อง / Room" class="border p-2">
-    <input id="period" placeholder="เดือน / Month" class="border p-2">
-  </div>
-
-  <table class="w-full mt-6 border text-sm">
-    <thead class="bg-gray-200">
-      <tr>
-        <th>รายการ</th>
-        <th>ก่อน</th>
-        <th>หลัง</th>
-        <th>หน่วย</th>
-        <th>ราคา</th>
-        <th>รวม</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="items"></tbody>
-  </table>
-
-  <button onclick="addRow()" class="mt-3 text-blue-600">
-    + เพิ่มรายการ / Add Item
-  </button>
-
-  <div class="text-right text-xl font-bold mt-6">
-    รวมทั้งหมด / Total: <span id="total">0</span> บาท
-  </div>
-
-  <div class="flex gap-3 mt-6">
-    <button onclick="printBill()" class="bg-gray-700 text-white px-4 py-2">พิมพ์</button>
-    <button onclick="downloadPDF()" class="bg-blue-600 text-white px-4 py-2">PDF</button>
-    <button onclick="downloadJPG()" class="bg-green-600 text-white px-4 py-2">JPG</button>
-  </div>
-
-</div>
-
-<script src="app.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js');
-  }
-</script>
+<body>
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -1,0 +1,9 @@
+{
+  "name": "บ้านเช่าส่วนตัว",
+  "description": "Smart Rental Management System for SW.BERNHARDT project. Features AI-driven tenant management, maintenance auditing, and automated billing integration.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
